@@ -94,8 +94,8 @@ rerun the `Install Project Dependencies` cell. That cell adds `src/` to
 editable install is unavailable.
 
 If Colab fails with a `torchcodec` / `libavutil.so` traceback, rerun the latest
-notebook from the top. The notebook removes a broken optional `torchcodec`
-install when it blocks text-only retrieval imports.
+notebook from the top. The notebook removes the optional `torchcodec` package
+because this text-only retrieval baseline does not need audio/video decoding.
 
 ## Push to GitHub
 
