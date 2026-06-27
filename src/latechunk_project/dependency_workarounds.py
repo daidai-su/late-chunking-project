@@ -13,6 +13,7 @@ NUMPY_STACK_REQUIREMENTS = [
     "numpy==1.26.4",
     "scipy>=1.12,<1.15",
     "scikit-learn>=1.4,<1.6",
+    "pandas>=2.2,<2.3",
 ]
 
 
@@ -20,10 +21,14 @@ NUMPY_STACK_CHECK_CODE = r"""
 import numpy as np
 print("numpy", np.__version__)
 print("numpy_char", np.char.lower(["ABC"])[0])
+from numpy.random import RandomState
+print("numpy_random", RandomState(0).rand(1)[0])
 import scipy
 print("scipy", scipy.__version__)
 import sklearn
 print("sklearn", sklearn.__version__)
+import pandas
+print("pandas", pandas.__version__)
 """
 
 
@@ -46,6 +51,7 @@ def ensure_numpy_stack_healthy(
         "initial_stdout": None,
         "initial_stderr": None,
         "repair_attempted": False,
+        "uninstall_returncode": None,
         "repair_returncode": None,
         "final_returncode": None,
         "final_stdout": None,
@@ -85,6 +91,24 @@ def ensure_numpy_stack_healthy(
 
     if repair:
         result["repair_attempted"] = True
+        uninstall_command = [
+            python_executable,
+            "-m",
+            "pip",
+            "uninstall",
+            "-y",
+            "numpy",
+            "scipy",
+            "scikit-learn",
+            "pandas",
+        ]
+        uninstalled = subprocess.run(
+            uninstall_command,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        result["uninstall_returncode"] = uninstalled.returncode
         repair_command = [
             python_executable,
             "-m",
