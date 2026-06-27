@@ -93,9 +93,11 @@ rerun the `Install Project Dependencies` cell. That cell adds `src/` to
 `sys.path` before installing the project, so local imports still work if an
 editable install is unavailable.
 
-If Colab fails with a `torchcodec` / `libavutil.so` traceback, rerun the latest
-notebook from the top. The notebook removes the optional `torchcodec` package
-because this text-only retrieval baseline does not need audio/video decoding.
+If Colab fails with a `torchcodec` / `libavutil.so` or
+`torchvision::nms does not exist` traceback, rerun the latest notebook from the
+top. The notebook removes optional media packages such as `torchcodec` and
+`torchvision` because this text-only retrieval baseline does not need
+audio/video/image decoding.
 
 ## Push to GitHub
 
