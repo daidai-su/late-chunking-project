@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "latechunk-project"
+version = "0.1.0"
+description = "Colab-ready scaffold for reproducing the official Late Chunking retrieval baseline."
+readme = "README_PROJECT.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy",
+  "scipy",
+]
+
+[project.optional-dependencies]
+colab = [
+  "transformers",
+  "sentence-transformers",
+  "beir",
+  "mteb",
+  "faiss-cpu",
+  "rank-bm25",
+  "pandas",
+  "scikit-learn",
+  "tqdm",
+  "matplotlib",
+  "pytest",
+  "nbformat",
+]
+test = [
+  "pytest",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+

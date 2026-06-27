@@ -1,0 +1,17 @@
+# Colab already provides a compatible PyTorch stack on GPU runtimes.
+# Do not force reinstall torch here.
+transformers
+sentence-transformers
+beir
+mteb
+faiss-cpu
+rank-bm25
+pandas
+numpy
+scikit-learn
+scipy
+tqdm
+matplotlib
+pytest
+nbformat
+
