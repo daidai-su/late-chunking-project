@@ -1,5 +1,6 @@
 from latechunk_project.boundary_chunking import (
     ChunkSpan,
+    _ensure_task_k_values,
     boundary_chunk_spans,
     chunk_text_by_whitespace,
     overlap_token_spans,
@@ -72,3 +73,12 @@ def test_chunk_text_by_whitespace_overlap_uses_fixed_settings():
     )
 
     assert spans == [ChunkSpan(0, 5), ChunkSpan(3, 8), ChunkSpan(6, 11), ChunkSpan(9, 12)]
+
+
+def test_task_k_values_include_recall_100():
+    class Task:
+        k_values = [1, 3, 10]
+
+    values = _ensure_task_k_values(Task(), required_k_values=(10, 100))
+
+    assert values == [1, 3, 10, 100]

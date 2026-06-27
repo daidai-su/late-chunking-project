@@ -421,10 +421,25 @@ def _load_result_metrics(result_json: Path | None) -> dict[str, Any]:
     return {
         "result_json": str(result_json),
         "ndcg_at_10": _metric(metrics, "nDCG@10", "ndcg_at_10") or _metric(raw, "ndcg_at_10"),
+        "recall_at_10": _metric(metrics, "Recall@10", "recall_at_10") or _metric(raw, "recall_at_10"),
         "recall_at_100": _metric(metrics, "Recall@100", "recall_at_100") or _metric(raw, "recall_at_100"),
         "mrr_at_10": _metric(metrics, "MRR@10", "mrr_at_10") or _metric(raw, "mrr_at_10"),
         "evaluation_time": parsed.get("evaluation_time"),
     }
+
+
+def _ensure_task_k_values(task: Any, required_k_values: Iterable[int] = (10, 100)) -> list[int]:
+    existing = getattr(task, "k_values", None)
+    if existing is None:
+        values = list(required_k_values)
+    else:
+        values = list(existing)
+        for k_value in required_k_values:
+            if k_value not in values:
+                values.append(k_value)
+    values = sorted({int(value) for value in values})
+    task.k_values = values
+    return values
 
 
 def _corpus_chunk_stats(
@@ -569,6 +584,7 @@ def run_boundary_chunking_experiment(config: dict[str, Any]) -> dict[str, Any]:
                         long_late_chunking_overlap_size=max_chunk_tokens,
                         **chunking_args,
                     )
+                    k_values = _ensure_task_k_values(task, required_k_values=(10, 100))
                     evaluation = MTEB(
                         tasks=[task],
                         chunked_pooling_enabled=late_enabled,
@@ -612,6 +628,7 @@ def run_boundary_chunking_experiment(config: dict[str, Any]) -> dict[str, Any]:
                         "wall_time_seconds": wall_time,
                         "indexing_time_seconds": None,
                         "retrieval_time_seconds": None,
+                        "k_values": json.dumps(k_values),
                         "timing_note": "official_mteb_combined_wall_time_only",
                         **corpus_stats_by_method[method],
                         **metrics,
