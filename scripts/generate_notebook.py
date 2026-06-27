@@ -62,6 +62,7 @@ def build_notebook() -> nbf.NotebookNode:
             RUN_INTERNAL_BASELINE_IF_AVAILABLE = True
 
             CONFIRM_FULL_RUN = False
+            UPDATE_PROJECT_ON_START = True
             '''
         ),
         markdown("## Install Project Dependencies"),
@@ -77,6 +78,11 @@ def build_notebook() -> nbf.NotebookNode:
                 print("+", " ".join(str(part) for part in command))
                 return subprocess.run(command, cwd=cwd, check=check)
 
+            def maybe_update_project(candidate):
+                if UPDATE_PROJECT_ON_START and (candidate / ".git").exists():
+                    run_command(["git", "-C", str(candidate), "pull", "--ff-only"], check=False)
+                return candidate
+
             def find_or_clone_project():
                 current = Path.cwd()
                 candidates = [
@@ -86,7 +92,7 @@ def build_notebook() -> nbf.NotebookNode:
                 ]
                 for candidate in candidates:
                     if (candidate / "src" / "latechunk_project").exists():
-                        return candidate
+                        return maybe_update_project(candidate)
 
                 target = Path("/content") / PROJECT_NAME
                 if "<YOUR_GITHUB_USERNAME>" in PUBLIC_REPO_URL:
@@ -96,7 +102,7 @@ def build_notebook() -> nbf.NotebookNode:
                     )
                 if not target.exists():
                     run_command(["git", "clone", PUBLIC_REPO_URL, str(target)])
-                return target
+                return maybe_update_project(target)
 
             PROJECT_ROOT = find_or_clone_project()
             os.chdir(PROJECT_ROOT)

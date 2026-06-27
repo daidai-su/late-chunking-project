@@ -73,6 +73,7 @@ def build_notebook() -> nbf.NotebookNode:
 
             RUN_BM25 = True
             RUN_RRF_FUSION = True
+            UPDATE_PROJECT_ON_START = True
             '''
         ),
         markdown("## Install Project Dependencies"),
@@ -88,6 +89,11 @@ def build_notebook() -> nbf.NotebookNode:
                 print("+", " ".join(str(part) for part in command))
                 return subprocess.run(command, cwd=cwd, check=check)
 
+            def maybe_update_project(candidate):
+                if UPDATE_PROJECT_ON_START and (candidate / ".git").exists():
+                    run_command(["git", "-C", str(candidate), "pull", "--ff-only"], check=False)
+                return candidate
+
             def find_or_clone_project():
                 current = Path.cwd()
                 candidates = [
@@ -98,12 +104,12 @@ def build_notebook() -> nbf.NotebookNode:
                 ]
                 for candidate in candidates:
                     if (candidate / "src" / "latechunk_project").exists():
-                        return candidate
+                        return maybe_update_project(candidate)
 
                 target = Path("/content") / "late_chunking_project"
                 if not target.exists():
                     run_command(["git", "clone", PUBLIC_REPO_URL, str(target)])
-                return target
+                return maybe_update_project(target)
 
             PROJECT_ROOT = find_or_clone_project()
             os.chdir(PROJECT_ROOT)
