@@ -1,17 +1,19 @@
 # Colab already provides a compatible PyTorch stack on GPU runtimes.
 # Do not force reinstall torch here.
-transformers
-sentence-transformers
-beir
-mteb
+#
+# NumPy is pinned because mixed NumPy 2.x installs in Colab can break imports
+# such as numpy.char during MTEB / transformers startup.
+numpy==1.26.4
+scipy>=1.12,<1.15
+scikit-learn>=1.4,<1.6
+pandas>=2.2,<2.3
+transformers==4.43.4
+sentence-transformers==5.5.1
+beir==2.2.0
+mteb==1.14.20
 faiss-cpu
 rank-bm25
-pandas
-numpy
-scikit-learn
-scipy
 tqdm
 matplotlib
 pytest
 nbformat
-

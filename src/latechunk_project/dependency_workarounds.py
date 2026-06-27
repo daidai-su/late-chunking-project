@@ -9,6 +9,122 @@ import sys
 from typing import Any
 
 
+NUMPY_STACK_REQUIREMENTS = [
+    "numpy==1.26.4",
+    "scipy>=1.12,<1.15",
+    "scikit-learn>=1.4,<1.6",
+]
+
+
+NUMPY_STACK_CHECK_CODE = r"""
+import numpy as np
+print("numpy", np.__version__)
+print("numpy_char", np.char.lower(["ABC"])[0])
+import scipy
+print("scipy", scipy.__version__)
+import sklearn
+print("sklearn", sklearn.__version__)
+"""
+
+
+def ensure_numpy_stack_healthy(
+    python_executable: str = sys.executable,
+    repair: bool = True,
+) -> dict[str, Any]:
+    """Check and repair the NumPy/SciPy/sklearn stack before importing MTEB.
+
+    The check runs in a subprocess so a broken NumPy import does not poison the
+    current notebook kernel. If NumPy is already imported in the current process
+    and the subprocess check fails, the function raises because a restart is the
+    only reliable recovery.
+    """
+    result: dict[str, Any] = {
+        "check": "numpy_stack",
+        "requirements": NUMPY_STACK_REQUIREMENTS,
+        "numpy_already_imported": "numpy" in sys.modules,
+        "initial_returncode": None,
+        "initial_stdout": None,
+        "initial_stderr": None,
+        "repair_attempted": False,
+        "repair_returncode": None,
+        "final_returncode": None,
+        "final_stdout": None,
+        "final_stderr": None,
+        "healthy": False,
+    }
+
+    initial = subprocess.run(
+        [python_executable, "-c", NUMPY_STACK_CHECK_CODE],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    result.update(
+        {
+            "initial_returncode": initial.returncode,
+            "initial_stdout": initial.stdout[-2000:],
+            "initial_stderr": initial.stderr[-2000:],
+        }
+    )
+    if initial.returncode == 0:
+        result.update(
+            {
+                "final_returncode": initial.returncode,
+                "final_stdout": initial.stdout[-2000:],
+                "final_stderr": initial.stderr[-2000:],
+                "healthy": True,
+            }
+        )
+        return result
+
+    if result["numpy_already_imported"]:
+        raise RuntimeError(
+            "NumPy stack is broken and numpy is already imported in this kernel. "
+            "Restart the runtime after dependency installation."
+        )
+
+    if repair:
+        result["repair_attempted"] = True
+        repair_command = [
+            python_executable,
+            "-m",
+            "pip",
+            "install",
+            "-q",
+            "--no-cache-dir",
+            "--force-reinstall",
+            *NUMPY_STACK_REQUIREMENTS,
+        ]
+        repaired = subprocess.run(
+            repair_command,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        result["repair_returncode"] = repaired.returncode
+
+    final = subprocess.run(
+        [python_executable, "-c", NUMPY_STACK_CHECK_CODE],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    result.update(
+        {
+            "final_returncode": final.returncode,
+            "final_stdout": final.stdout[-2000:],
+            "final_stderr": final.stderr[-2000:],
+            "healthy": final.returncode == 0,
+        }
+    )
+    if final.returncode != 0:
+        raise RuntimeError(
+            "NumPy stack check failed after repair. "
+            f"stderr tail: {final.stderr[-1000:]}"
+        )
+    return result
+
+
 def _remove_optional_package(package_name: str, python_executable: str) -> dict[str, Any]:
     result: dict[str, Any] = {
         "package": package_name,

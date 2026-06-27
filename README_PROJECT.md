@@ -127,6 +127,10 @@ top. The notebook removes optional media packages such as `torchcodec` and
 `torchvision` because this text-only retrieval baseline does not need
 audio/video/image decoding.
 
+If Colab fails around `numpy.char`, use the latest notebook. It pins
+`numpy==1.26.4` and runs a subprocess NumPy/SciPy/sklearn sanity check before
+MTEB is imported.
+
 ## Push to GitHub
 
 ```bash

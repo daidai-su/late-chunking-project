@@ -118,8 +118,13 @@ def build_notebook() -> nbf.NotebookNode:
             if (PROJECT_ROOT / "pyproject.toml").exists() or (PROJECT_ROOT / "setup.py").exists():
                 run_command([sys.executable, "-m", "pip", "install", "-q", "-e", str(PROJECT_ROOT)], check=False)
 
-            from latechunk_project.dependency_workarounds import remove_optional_media_dependencies
+            from latechunk_project.dependency_workarounds import (
+                ensure_numpy_stack_healthy,
+                remove_optional_media_dependencies,
+            )
 
+            numpy_stack_status = ensure_numpy_stack_healthy()
+            print("NumPy stack check:", numpy_stack_status)
             dependency_workaround_events = remove_optional_media_dependencies()
             print("Optional media dependency checks:", dependency_workaround_events)
             '''
@@ -130,7 +135,10 @@ def build_notebook() -> nbf.NotebookNode:
             import sys
             from pathlib import Path
 
-            from latechunk_project.dependency_workarounds import remove_optional_media_dependencies
+            from latechunk_project.dependency_workarounds import (
+                ensure_numpy_stack_healthy,
+                remove_optional_media_dependencies,
+            )
             from latechunk_project.official_repo import clone_official_repo, install_official_repo
             from latechunk_project.run_utils import ensure_output_tree
 
@@ -145,6 +153,7 @@ def build_notebook() -> nbf.NotebookNode:
                 force_rerun=FORCE_RERUN,
             )
             official_install = install_official_repo(official_repo_path)
+            numpy_stack_status_after_official_install = ensure_numpy_stack_healthy()
             dependency_workaround_events.extend(remove_optional_media_dependencies())
 
             official_src = str(official_repo_path)
@@ -153,6 +162,7 @@ def build_notebook() -> nbf.NotebookNode:
 
             print(f"Official repo: {official_repo_path}")
             print(f"Official editable install return code: {official_install.returncode}")
+            print("NumPy stack check after official install:", numpy_stack_status_after_official_install)
             print(f"Aggregation outputs: {AGG_OUTPUT_DIR}")
             '''
         ),
