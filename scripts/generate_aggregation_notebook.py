@@ -78,6 +78,7 @@ def build_notebook() -> nbf.NotebookNode:
         markdown("## Install Project Dependencies"),
         code(
             r'''
+            import importlib
             import os
             import subprocess
             import sys
@@ -127,10 +128,11 @@ def build_notebook() -> nbf.NotebookNode:
             import latechunk_project
             print(f"latechunk_project import OK: {latechunk_project.__version__}")
 
-            from latechunk_project.dependency_workarounds import (
-                ensure_numpy_stack_healthy,
-                remove_optional_media_dependencies,
-            )
+            import latechunk_project.dependency_workarounds as dependency_workarounds
+
+            dependency_workarounds = importlib.reload(dependency_workarounds)
+            ensure_numpy_stack_healthy = dependency_workarounds.ensure_numpy_stack_healthy
+            remove_optional_media_dependencies = dependency_workarounds.remove_optional_media_dependencies
 
             numpy_stack_status = ensure_numpy_stack_healthy(check_current_process=False)
             print("On-disk NumPy stack check:", numpy_stack_status)
@@ -141,13 +143,15 @@ def build_notebook() -> nbf.NotebookNode:
         markdown("## Clone Official Repository"),
         code(
             '''
+            import importlib
             import sys
             from pathlib import Path
 
-            from latechunk_project.dependency_workarounds import (
-                ensure_numpy_stack_healthy,
-                remove_optional_media_dependencies,
-            )
+            import latechunk_project.dependency_workarounds as dependency_workarounds
+
+            dependency_workarounds = importlib.reload(dependency_workarounds)
+            ensure_numpy_stack_healthy = dependency_workarounds.ensure_numpy_stack_healthy
+            remove_optional_media_dependencies = dependency_workarounds.remove_optional_media_dependencies
             from latechunk_project.official_repo import clone_official_repo, install_official_repo
             from latechunk_project.run_utils import ensure_output_tree
 
