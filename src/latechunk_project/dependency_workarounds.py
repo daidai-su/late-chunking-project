@@ -17,9 +17,18 @@ NUMPY_STACK_REQUIREMENTS = [
 ]
 
 
-NUMPY_STACK_CHECK_CODE = r"""
+EXPECTED_NUMPY_VERSION = "1.26.4"
+NUMPY_STACK_MODULE_PREFIXES = ("numpy", "scipy", "sklearn", "pandas")
+
+
+NUMPY_STACK_CHECK_CODE = rf"""
 import numpy as np
 print("numpy", np.__version__)
+if np.__version__ != "{EXPECTED_NUMPY_VERSION}":
+    raise RuntimeError(
+        "Expected numpy {EXPECTED_NUMPY_VERSION}, "
+        f"but imported numpy {{np.__version__}}"
+    )
 print("numpy_char", np.char.lower(["ABC"])[0])
 from numpy.random import RandomState
 print("numpy_random", RandomState(0).rand(1)[0])
@@ -32,24 +41,83 @@ print("pandas", pandas.__version__)
 """
 
 
+def _loaded_numpy_stack_modules() -> list[str]:
+    return sorted(
+        module_name
+        for module_name in sys.modules
+        if any(
+            module_name == prefix or module_name.startswith(f"{prefix}.")
+            for prefix in NUMPY_STACK_MODULE_PREFIXES
+        )
+    )
+
+
+def _check_numpy_stack_in_current_process() -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "ok": False,
+        "stdout": None,
+        "error": None,
+    }
+    try:
+        import numpy as np
+        from numpy.random import RandomState
+        import scipy
+        import sklearn
+        import pandas
+
+        if np.__version__ != EXPECTED_NUMPY_VERSION:
+            raise RuntimeError(
+                f"Expected numpy {EXPECTED_NUMPY_VERSION}, "
+                f"but imported numpy {np.__version__}"
+            )
+
+        result.update(
+            {
+                "ok": True,
+                "stdout": "\n".join(
+                    [
+                        f"numpy {np.__version__}",
+                        f"numpy_char {np.char.lower(['ABC'])[0]}",
+                        f"numpy_random {RandomState(0).rand(1)[0]}",
+                        f"scipy {scipy.__version__}",
+                        f"sklearn {sklearn.__version__}",
+                        f"pandas {pandas.__version__}",
+                    ]
+                ),
+            }
+        )
+    except Exception as exc:
+        result["error"] = repr(exc)[:2000]
+    return result
+
+
 def ensure_numpy_stack_healthy(
     python_executable: str = sys.executable,
     repair: bool = True,
 ) -> dict[str, Any]:
     """Check and repair the NumPy/SciPy/sklearn stack before importing MTEB.
 
-    The check runs in a subprocess so a broken NumPy import does not poison the
-    current notebook kernel. If NumPy is already imported in the current process
-    and the subprocess check fails, the function raises because a restart is the
-    only reliable recovery.
+    The first check runs in a subprocess so a broken on-disk NumPy install does
+    not poison the current notebook kernel. A second check runs in the current
+    process before returning, because a Colab kernel can keep an old NumPy C
+    extension loaded after pip changes files on disk. In that state a restart is
+    the only reliable recovery.
     """
+    loaded_stack_modules_before = _loaded_numpy_stack_modules()
     result: dict[str, Any] = {
         "check": "numpy_stack",
         "requirements": NUMPY_STACK_REQUIREMENTS,
-        "numpy_already_imported": "numpy" in sys.modules,
+        "numpy_already_imported": any(
+            module_name == "numpy" or module_name.startswith("numpy.")
+            for module_name in loaded_stack_modules_before
+        ),
+        "stack_modules_already_loaded": loaded_stack_modules_before,
         "initial_returncode": None,
         "initial_stdout": None,
         "initial_stderr": None,
+        "current_process_ok": None,
+        "current_process_stdout": None,
+        "current_process_error": None,
         "repair_attempted": False,
         "uninstall_returncode": None,
         "repair_returncode": None,
@@ -73,6 +141,22 @@ def ensure_numpy_stack_healthy(
         }
     )
     if initial.returncode == 0:
+        current_process = _check_numpy_stack_in_current_process()
+        result.update(
+            {
+                "current_process_ok": current_process["ok"],
+                "current_process_stdout": current_process["stdout"],
+                "current_process_error": current_process["error"],
+            }
+        )
+        if not current_process["ok"]:
+            raise RuntimeError(
+                "NumPy stack is healthy on disk, but this notebook kernel has "
+                "an incompatible NumPy/SciPy/sklearn/pandas module already loaded. "
+                "Restart the runtime, then run the notebook from the install cell. "
+                f"Loaded modules before check: {loaded_stack_modules_before[:20]}. "
+                f"Current-process error: {current_process['error']}"
+            )
         result.update(
             {
                 "final_returncode": initial.returncode,
@@ -83,10 +167,13 @@ def ensure_numpy_stack_healthy(
         )
         return result
 
-    if result["numpy_already_imported"]:
+    if loaded_stack_modules_before:
         raise RuntimeError(
-            "NumPy stack is broken and numpy is already imported in this kernel. "
-            "Restart the runtime after dependency installation."
+            "NumPy stack is broken on disk and this kernel already has "
+            "NumPy/SciPy/sklearn/pandas modules loaded. Restart the runtime "
+            "after dependency installation. "
+            f"Loaded modules: {loaded_stack_modules_before[:20]}. "
+            f"Subprocess stderr tail: {initial.stderr[-1000:]}"
         )
 
     if repair:
@@ -145,6 +232,20 @@ def ensure_numpy_stack_healthy(
         raise RuntimeError(
             "NumPy stack check failed after repair. "
             f"stderr tail: {final.stderr[-1000:]}"
+        )
+    current_process = _check_numpy_stack_in_current_process()
+    result.update(
+        {
+            "current_process_ok": current_process["ok"],
+            "current_process_stdout": current_process["stdout"],
+            "current_process_error": current_process["error"],
+        }
+    )
+    if not current_process["ok"]:
+        raise RuntimeError(
+            "NumPy stack was repaired on disk, but this notebook kernel still "
+            "cannot import it safely. Restart the runtime, then run the notebook "
+            f"from the install cell. Current-process error: {current_process['error']}"
         )
     return result
 
