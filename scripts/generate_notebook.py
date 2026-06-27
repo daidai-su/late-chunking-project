@@ -123,6 +123,13 @@ def build_notebook() -> nbf.NotebookNode:
 
             import latechunk_project
             print(f"latechunk_project import OK: {latechunk_project.__version__}")
+
+            from latechunk_project.dependency_workarounds import remove_broken_torchcodec
+
+            dependency_workaround_events = []
+            torchcodec_status = remove_broken_torchcodec()
+            dependency_workaround_events.append(torchcodec_status)
+            print("TorchCodec optional dependency check:", torchcodec_status)
             '''
         ),
         markdown("## Clone And Install The Official Repository"),
@@ -140,6 +147,7 @@ def build_notebook() -> nbf.NotebookNode:
 
             from latechunk_project.official_repo import clone_official_repo, install_official_repo
             from latechunk_project.run_utils import ensure_output_tree
+            from latechunk_project.dependency_workarounds import remove_broken_torchcodec
 
             output_dirs = ensure_output_tree(OUTPUT_DIR)
             official_repo_path = clone_official_repo(
@@ -148,10 +156,15 @@ def build_notebook() -> nbf.NotebookNode:
                 force_rerun=FORCE_RERUN,
             )
             official_install = install_official_repo(official_repo_path)
+            torchcodec_status_after_official_install = remove_broken_torchcodec()
+            if "dependency_workaround_events" not in globals():
+                dependency_workaround_events = []
+            dependency_workaround_events.append(torchcodec_status_after_official_install)
             print(f"Official repo: {official_repo_path}")
             print(f"Official editable install return code: {official_install.returncode}")
             print(f"Official install stdout: {official_install.stdout_path}")
             print(f"Official install stderr: {official_install.stderr_path}")
+            print("TorchCodec check after official install:", torchcodec_status_after_official_install)
             '''
         ),
         markdown("## Environment Check"),
@@ -191,6 +204,9 @@ def build_notebook() -> nbf.NotebookNode:
                 "metrics_parsed_successfully": False,
                 "metrics": {},
                 "notes": [],
+                "dependency_workarounds": dependency_workaround_events
+                if "dependency_workaround_events" in globals()
+                else [],
             }
             save_run_manifest(OUTPUT_DIR, manifest)
             print(f"Manifest initialized at {OUTPUT_DIR}/run_manifest.json")

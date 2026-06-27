@@ -93,6 +93,10 @@ rerun the `Install Project Dependencies` cell. That cell adds `src/` to
 `sys.path` before installing the project, so local imports still work if an
 editable install is unavailable.
 
+If Colab fails with a `torchcodec` / `libavutil.so` traceback, rerun the latest
+notebook from the top. The notebook removes a broken optional `torchcodec`
+install when it blocks text-only retrieval imports.
+
 ## Push to GitHub
 
 ```bash
