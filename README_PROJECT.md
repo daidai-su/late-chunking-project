@@ -5,7 +5,8 @@ small BEIR-style retrieval task.
 
 - Paper: <https://arxiv.org/abs/2409.04701>
 - Official repository: <https://github.com/jina-ai/late-chunking>
-- Primary notebook: `notebooks/01_late_chunking_baseline_colab.ipynb`
+- Phase A notebook: `notebooks/01_late_chunking_baseline_colab.ipynb`
+- Phase B notebook: `notebooks/02_late_chunking_aggregation_experiment_colab.ipynb`
 
 ## What Late Chunking Is
 
@@ -65,6 +66,27 @@ Artifacts are saved under `OUTPUT_DIR`, defaulting to
 
 No training is performed, and no paid API is used.
 
+## Aggregation Experiments
+
+Phase B tests training-free chunk-to-document aggregation methods over saved
+chunk-level late chunk rankings. The official baseline remains available in the
+Phase A notebook. The aggregation notebook saves outputs under:
+
+```text
+/content/late_chunking_outputs/aggregation_experiment
+```
+
+The methods are grouped as:
+
+- `official_baseline`: `first_occurrence`
+- `late_chunk_aggregation`: `max_score`, `topk_mean`, `softmax_topk`,
+  `max_plus_coverage`, `rrf_chunk_vote`
+- `lexical`: `bm25_only`
+- `hybrid`: `late_first_occurrence_plus_bm25_rrf`,
+  `late_softmax_topk_plus_bm25_rrf`
+
+BM25 fusion is a hybrid retrieval baseline, not a pure Late Chunking method.
+
 ## Runtime Estimates
 
 - `smoke`: about 5-15 minutes in Colab, dominated by dependency installation.
@@ -86,6 +108,12 @@ Run CPU-only tests without downloading models or datasets:
 
 ```bash
 python -m pytest
+```
+
+Without pytest, the lightweight local validation helper can be used:
+
+```bash
+python scripts/validate_project.py
 ```
 
 If Colab raises `ModuleNotFoundError: No module named 'latechunk_project'`,

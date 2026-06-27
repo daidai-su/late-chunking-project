@@ -310,13 +310,61 @@ def build_notebook() -> nbf.NotebookNode:
             task_results
             '''
         ),
+        markdown("## Parse Official Result JSON Artifacts"),
+        code(
+            '''
+            import csv
+            from pathlib import Path
+
+            from latechunk_project.result_parsing import summarize_mteb_result_jsons
+            from latechunk_project.run_utils import save_run_manifest, utc_now_iso
+
+            result_rows, result_metrics = summarize_mteb_result_jsons(official_repo_path, TASKS)
+
+            if result_rows:
+                summary_path = Path(OUTPUT_DIR) / "tables" / "official_results_summary.csv"
+                fieldnames = [
+                    "task",
+                    "method",
+                    "main_score",
+                    "ndcg_at_10",
+                    "recall_at_10",
+                    "map_at_10",
+                    "mrr_at_10",
+                    "evaluation_time",
+                    "result_json",
+                ]
+                with summary_path.open("w", encoding="utf-8", newline="") as handle:
+                    writer = csv.DictWriter(handle, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writer.writerows(result_rows)
+
+                manifest["metrics"].update(result_metrics)
+                manifest["metrics_parsed_successfully"] = True
+                manifest["output_file_paths"]["official_results_summary_csv"] = str(summary_path)
+                official_result_jsons = {task: {} for task in TASKS}
+                for row in result_rows:
+                    if row["task"] in official_result_jsons:
+                        official_result_jsons[row["task"]][row["method"]] = row["result_json"]
+                manifest["output_file_paths"]["official_result_jsons"] = official_result_jsons
+                manifest["end_timestamp"] = utc_now_iso()
+                save_run_manifest(OUTPUT_DIR, manifest)
+
+                print(f"Saved official results summary: {summary_path}")
+                for row in result_rows:
+                    print(row)
+            else:
+                print("No official MTEB result JSON files found yet.")
+                print("If the official command returned 0, inspect the official repo result directories.")
+            '''
+        ),
         markdown(
             """
             ## After The Run
 
-            Check `run_manifest.json` and the raw stdout/stderr logs before
-            reporting any result. If metric parsing fails, use the raw official
-            logs as the source of truth.
+            Check `run_manifest.json`, `official_results_summary.csv`, and the
+            raw stdout/stderr logs before reporting any result. If parsing fails,
+            use the raw official result JSON files as the source of truth.
             """
         ),
     ]

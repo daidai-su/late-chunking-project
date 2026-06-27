@@ -14,11 +14,14 @@ def validate_notebook() -> None:
     import nbformat
     from nbformat.validator import validate
 
-    notebook_path = ROOT / "notebooks" / "01_late_chunking_baseline_colab.ipynb"
-    with notebook_path.open(encoding="utf-8") as handle:
-        notebook = nbformat.read(handle, as_version=4)
-    validate(notebook)
-    print(f"validated notebook: {notebook_path} ({len(notebook.cells)} cells)")
+    for notebook_path in sorted((ROOT / "notebooks").glob("*.ipynb")):
+        with notebook_path.open(encoding="utf-8") as handle:
+            notebook = nbformat.read(handle, as_version=4)
+        validate(notebook)
+        for index, cell in enumerate(notebook.cells):
+            if cell.cell_type == "code":
+                compile(cell.source, f"{notebook_path}:cell-{index}", "exec")
+        print(f"validated notebook: {notebook_path} ({len(notebook.cells)} cells)")
 
 
 def run_test_functions() -> int:
@@ -48,4 +51,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
