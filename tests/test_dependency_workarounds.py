@@ -65,3 +65,34 @@ def test_numpy_stack_check_blocks_poisoned_current_process():
         workarounds.subprocess.run = original_run
         workarounds._check_numpy_stack_in_current_process = original_current_check
         workarounds._loaded_numpy_stack_modules = original_loaded_modules
+
+
+def test_numpy_stack_check_can_skip_current_process_probe():
+    original_run = workarounds.subprocess.run
+    original_current_check = workarounds._check_numpy_stack_in_current_process
+    original_loaded_modules = workarounds._loaded_numpy_stack_modules
+    try:
+        workarounds.subprocess.run = lambda *args, **kwargs: _Completed(
+            returncode=0,
+            stdout="numpy 1.26.4\n",
+            stderr="",
+        )
+
+        def fail_if_called():
+            raise AssertionError("current-process check should be skipped")
+
+        workarounds._check_numpy_stack_in_current_process = fail_if_called
+        workarounds._loaded_numpy_stack_modules = lambda: ["numpy", "numpy._core"]
+
+        status = workarounds.ensure_numpy_stack_healthy(
+            python_executable="python",
+            repair=False,
+            check_current_process=False,
+        )
+
+        assert status["healthy"] is True
+        assert status["current_process_ok"] is None
+    finally:
+        workarounds.subprocess.run = original_run
+        workarounds._check_numpy_stack_in_current_process = original_current_check
+        workarounds._loaded_numpy_stack_modules = original_loaded_modules

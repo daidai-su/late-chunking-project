@@ -40,7 +40,7 @@ def build_notebook() -> nbf.NotebookNode:
         code(
             '''
             PROJECT_NAME = "late_chunking_project"
-            PUBLIC_REPO_URL = "https://github.com/<YOUR_GITHUB_USERNAME>/late-chunking-project.git"
+            PUBLIC_REPO_URL = "https://github.com/daidai-su/late-chunking-project.git"
             OFFICIAL_REPO_URL = "https://github.com/jina-ai/late-chunking.git"
 
             MODE = "smoke"  # smoke / small / full
@@ -129,7 +129,7 @@ def build_notebook() -> nbf.NotebookNode:
                 remove_optional_media_dependencies,
             )
 
-            numpy_stack_status = ensure_numpy_stack_healthy()
+            numpy_stack_status = ensure_numpy_stack_healthy(check_current_process=False)
             print("NumPy stack check:", numpy_stack_status)
             dependency_workaround_events = []
             optional_media_status = remove_optional_media_dependencies()
@@ -164,7 +164,7 @@ def build_notebook() -> nbf.NotebookNode:
                 force_rerun=FORCE_RERUN,
             )
             official_install = install_official_repo(official_repo_path)
-            numpy_stack_status_after_official_install = ensure_numpy_stack_healthy()
+            numpy_stack_status_after_official_install = ensure_numpy_stack_healthy(check_current_process=False)
             optional_media_status_after_official_install = remove_optional_media_dependencies()
             if "dependency_workaround_events" not in globals():
                 dependency_workaround_events = []
