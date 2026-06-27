@@ -235,6 +235,11 @@ def build_notebook() -> nbf.NotebookNode:
             import os
             from pathlib import Path
 
+            from latechunk_project.dependency_workarounds import ensure_numpy_stack_healthy
+
+            numpy_stack_status_before_mteb = ensure_numpy_stack_healthy()
+            print("NumPy stack check before MTEB import:", numpy_stack_status_before_mteb)
+
             import torch
             from mteb import MTEB
             from transformers import AutoTokenizer
