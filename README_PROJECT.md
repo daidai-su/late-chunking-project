@@ -88,6 +88,11 @@ Run CPU-only tests without downloading models or datasets:
 python -m pytest
 ```
 
+If Colab raises `ModuleNotFoundError: No module named 'latechunk_project'`,
+rerun the `Install Project Dependencies` cell. That cell adds `src/` to
+`sys.path` before installing the project, so local imports still work if an
+editable install is unavailable.
+
 ## Push to GitHub
 
 ```bash
@@ -98,4 +103,3 @@ git branch -M main
 git remote add origin https://github.com/<YOUR_GITHUB_USERNAME>/late-chunking-project.git
 git push -u origin main
 ```
-

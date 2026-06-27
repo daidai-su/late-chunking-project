@@ -101,19 +101,43 @@ def build_notebook() -> nbf.NotebookNode:
             os.chdir(PROJECT_ROOT)
             print(f"Project root: {PROJECT_ROOT}")
 
+            src_path = str(PROJECT_ROOT / "src")
+            if src_path not in sys.path:
+                sys.path.insert(0, src_path)
+            print(f"Added to Python path: {src_path}")
+
             requirements_path = PROJECT_ROOT / "requirements-colab.txt"
             if requirements_path.exists():
                 run_command([sys.executable, "-m", "pip", "install", "-q", "-r", str(requirements_path)])
 
             if (PROJECT_ROOT / "pyproject.toml").exists() or (PROJECT_ROOT / "setup.py").exists():
-                run_command([sys.executable, "-m", "pip", "install", "-q", "-e", str(PROJECT_ROOT)])
-            else:
-                sys.path.insert(0, str(PROJECT_ROOT / "src"))
+                editable_install = run_command(
+                    [sys.executable, "-m", "pip", "install", "-q", "-e", str(PROJECT_ROOT)],
+                    check=False,
+                )
+                if editable_install.returncode != 0:
+                    print(
+                        "Editable install failed, but src/ is already on sys.path. "
+                        "Continuing with direct source imports."
+                    )
+
+            import latechunk_project
+            print(f"latechunk_project import OK: {latechunk_project.__version__}")
             '''
         ),
         markdown("## Clone And Install The Official Repository"),
         code(
             '''
+            import sys
+            from pathlib import Path
+
+            if "PROJECT_ROOT" not in globals():
+                raise RuntimeError("Run the 'Install Project Dependencies' cell before this cell.")
+
+            src_path = str(Path(PROJECT_ROOT) / "src")
+            if src_path not in sys.path:
+                sys.path.insert(0, src_path)
+
             from latechunk_project.official_repo import clone_official_repo, install_official_repo
             from latechunk_project.run_utils import ensure_output_tree
 
@@ -292,4 +316,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
